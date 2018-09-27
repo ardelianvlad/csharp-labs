@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CSharpLabs
 {
-    public class Person
+    public class Person : IDateAndCopy
     {
 
         #region Constants
@@ -14,9 +14,9 @@ namespace CSharpLabs
         #endregion
 
         #region Private fields
-        private string firstName;
-        private string lastName;
-        private DateTime dateOfBirth;
+        protected string firstName;
+        protected string lastName;
+        protected DateTime dateOfBirth;
         #endregion
 
         #region Properties
@@ -43,6 +43,12 @@ namespace CSharpLabs
             get => dateOfBirth.Year;
             set => dateOfBirth = new DateTime(value, dateOfBirth.Month, dateOfBirth.Day);
         }
+
+        public DateTime Date
+        {
+            get;
+            set;
+        }
         #endregion
 
         #region Constructors
@@ -64,12 +70,70 @@ namespace CSharpLabs
         #region Public methods
         public override string ToString()
         {
-            return "Person: " + firstName + " " + lastName + " " + dateOfBirth.ToString(DATE_FORMAT);
+            return $"Person: {firstName} {lastName}, {dateOfBirth.ToString(DATE_FORMAT)}";
         }
 
         public virtual string ToShortString()
         {
-            return firstName + " " + lastName;
+            return $"{firstName} {lastName}";
+        }
+
+        public bool Equals(Person other)
+        {
+            if (other is null)
+            {
+                return false;
+            }
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+            return firstName.Equals(other.firstName)
+                && lastName.Equals(other.lastName)
+                && dateOfBirth.Equals(other.dateOfBirth);
+        }
+
+        public override bool Equals(object obj)
+        {
+            Person other = obj as Person;
+            if (other is null)
+            {
+                return false;
+            }
+            return Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return firstName.GetHashCode()
+                ^ lastName.GetHashCode()
+                ^ dateOfBirth.GetHashCode();
+        }
+
+        public virtual object DeepCopy()
+        {
+            return new Person
+            {
+                FirstName = this.FirstName,
+                LastName = this.LastName,
+                DateOfBirth = this.DateOfBirth
+            };
+        }
+        #endregion
+
+        #region Operators
+        public static bool operator ==(Person self, Person other)
+        {
+            if (self is null)
+            {
+                return other is null;
+            }
+            return self.Equals(other);
+        }
+
+        public static bool operator !=(Person self, Person other)
+        {
+            return !(self == other);
         }
         #endregion
 

@@ -1,22 +1,28 @@
 ﻿using System;
+using System.Collections;
 using System.Linq;
 
 namespace CSharpLabs
 {
-    class Student
+    public class Student : Person, IDateAndCopy
     {
         #region Fields
-        private Person person;
         private Education education;
         private int group;
-        private Exam[] exams;
+        private ArrayList tests;
+        private ArrayList exams;
         #endregion
 
         #region Properties
         public Person Person
         {
-            get => person;
-            set => person = value;
+            get => new Person(firstName, lastName, dateOfBirth);
+            set
+            {
+                FirstName = value.FirstName;
+                LastName = value.LastName;
+                DateOfBirth = value.DateOfBirth;
+            }
         }
 
         public Education Education
@@ -28,20 +34,46 @@ namespace CSharpLabs
         public int Group
         {
             get => group;
-            set => group = value;
+            set
+            {
+                if (value <= 100 || value > 699)
+                {
+                    throw new ArgumentException("Number of group must be between 101 and 699, included.");
+                }
+                else
+                {
+                    group = value;
+                }
+            }
         }
 
-        public Exam[] Exams
+        public ArrayList Exams
         {
             get => exams;
             set => exams = value;
         }
 
+        public ArrayList Tests
+        {
+            get => tests;
+            set => tests = value;
+        }
+
         public double AvgGrade
         {
             get => exams != null
-                ? exams.Average(exam => exam.Grade)
+                ? exams.Cast<Exam>().Average(exam => exam.Grade)
                 : 0;
+        }
+
+        public IEnumerable ExamsAndTests
+        {
+            get
+            {
+                ArrayList examsAndTests = new ArrayList { exams };
+                examsAndTests.AddRange(tests);
+                return examsAndTests.Cast<object>();
+            }
         }
 
         public bool this[Education toCompare]
@@ -51,42 +83,54 @@ namespace CSharpLabs
         #endregion
 
         #region Constructors
-        public Student(Person person, Education education, int group)
+
+        public Student() : base() { }
+
+        public Student(string firstName, string lastName, DateTime dateOfBirth,
+            Education education, int group)
+            : base(firstName, lastName, dateOfBirth)
         {
-            Person = person;
             Education = education;
             Group = group;
         }
 
-        public Student()
+        public Student(Person person, Education education, int group)
+            : base(person.FirstName, person.LastName, person.DateOfBirth)
         {
-            Person = new Person();
+            Education = education;
+            Group = group;
         }
         #endregion
 
         #region Public methods
         public void AddExams(params Exam[] newExams)
         {
-            if (exams != null && Exams.Length != 0)
+            if (exams != null && Exams.Count != 0)
             {
-                Exam[] concatExams = new Exam[exams.Length + newExams.Length];
-                exams.CopyTo(concatExams, 0);
-                newExams.CopyTo(concatExams, exams.Length);
-                exams = concatExams;
+                Exams.AddRange(newExams);
             }
             else
             {
-                exams = newExams;
+                exams = new ArrayList(newExams);
             }
         }
 
         public override string ToString()
         {
-            string result = "Person: " + person.ToString() + "\n"
+            string result = "Person: " + base.ToString() + "\n"
                 + education.ToString() + ", " + group.ToString() + " group\nExams: ";
             if (exams != null)
             {
-                result += string.Join<Exam>("\n", exams);
+                result += string.Join<Exam>("\n", exams.Cast<Exam>());
+            }
+            else
+            {
+                result += "none";
+            }
+            result += "\n, Tests:";
+            if (tests != null)
+            {
+                result += string.Join<Test>("\n", tests.Cast<Test>());
             }
             else
             {
@@ -95,104 +139,77 @@ namespace CSharpLabs
             return result;
         }
 
-        public virtual string ToShortString()
+        public override string ToShortString()
         {
-            return "Student: " + person.ToString() + "\n"
+            return "Student: " + base.ToString() + "\n"
                 + education.ToString() + ", " + group.ToString() + " group\n"
                 + "Average grade: " + AvgGrade.ToString();
         }
 
+        public override object DeepCopy()
+        {
+            return new Student
+            {
+                Person = this.Person,
+                Education = this.education,
+                Group = this.group,
+                Exams = new ArrayList(exams.Cast<Exam>().Select(exam => exam.DeepCopy()).ToArray()),
+                Tests = new ArrayList(tests.Cast<Test>().Select(test => new Test(test.Name, test.IsPassed)).ToArray())
+            };
+        }
+
+        public IEnumerable GetExamsGraderThan(double compare)
+        {
+            return exams.Cast<Exam>().Where(exam => exam.Grade > compare);
+        }
+
         public static void Main(string[] args)
         {
-            Student student = new Student();
-            Console.WriteLine("1. " + student.ToShortString());
+            Person a = new Person("Ivan", "Ivanov", new DateTime(2000, 1, 1));
+            Person b = new Person("Ivan", "Ivanov", new DateTime(2000, 1, 1));
 
-            Console.Write("2. ");
-            Console.WriteLine("Is Master? " + student[Education.Master]);
-            Console.WriteLine("Is Bachelor? " + student[Education.Bachelor]);
-            Console.WriteLine("Is SecondEducation? " + student[Education.SecondEducation]);
+            Console.WriteLine("a == b ? " + (a == b));
+            Console.WriteLine("hash a : " + a.GetHashCode() + ", hash b : " + b.GetHashCode());
 
-            student.Person = new Person("John", "Doe", new DateTime(1999, 9, 1));
-            student.Education = Education.Bachelor;
-            student.Group = 401;
-            student.Exams = new Exam[]
+            Student student = new Student("John", "Johnson", new DateTime(1999, 2, 1), Education.Bachelor, 313);
+            student.Exams = new ArrayList
             {
-                new Exam("C# programming", 5, new DateTime(2018, 6, 1)),
-                new Exam("Network security", 4, new DateTime(2018, 6, 5)),
-                new Exam("Modern databases", 3, new DateTime(2018, 6, 9))
+                new Exam("Calculus", 4, DateTime.Now),
+                new Exam("C#", 5, DateTime.Now)
             };
-            Console.WriteLine("3. " + student);
+            student.Tests = new ArrayList
+            {
+                new Test("Java", true),
+                new Test("Databases", true)
+            };
 
-            student.AddExams
-            (
-                new Exam("Calculus", 4, new DateTime(2018, 6, 13)),
-                new Exam("Numerical analysis", 5, new DateTime(2018, 6, 17))
-            );
-            Console.WriteLine("4. " + student);
-            Console.WriteLine(student.ToShortString());
+            Console.WriteLine(student);
+            Console.WriteLine(student.Person);
 
-            Console.Write("Enter number of rows and number of columns (split by [space] or [comma]): ");
-            string[] numbers = Console.ReadLine().Split(new char[] {' ', ','});
-            int nRows = int.Parse(numbers[0]);
-            int nColumns = int.Parse(numbers[1]);
-            Exam[] flatArray = new Exam[nRows * nColumns];
-            for (int i = 0; i < nRows * nColumns; i++)
+            Student copy = (Student)student.DeepCopy();
+
+            foreach (Test test in student.Tests)
             {
-                flatArray[i] = new Exam(string.Empty, 0, DateTime.Now);
-            }
-            Exam[,] twoDimArray = new Exam[nRows, nColumns];
-            for (int i = 0; i < nRows; i++)
-            {
-                for (int j = 0; j < nColumns; j++)
-                {
-                    twoDimArray[i,j] = new Exam(string.Empty, 0, DateTime.Now);
-                }
-            }
-            Exam[][] stairsArray = new Exam[nRows][];
-            for (int i = 0; i < nRows; i++)
-            {
-                stairsArray[i] = new Exam[nColumns];
-            }
-            for (int i = 0; i < nRows; i++)
-            {
-                for (int j = 0; j < nColumns; j++)
-                {
-                    stairsArray[i][j] = new Exam(string.Empty, 0, DateTime.Now);
-                }
+                test.IsPassed = false;
             }
 
-            int saveTick = Environment.TickCount;
-            for (int i = 0; i < nRows * nColumns; i++)
-            {
-                flatArray[i].DateOfPassing = DateTime.Now;
-                flatArray[i].Grade = 100;
-                flatArray[i].SubjectName = "Test";
-            }
-            Console.WriteLine(Environment.TickCount - saveTick);
+            (student.Exams[0] as Exam).Grade = 2;
 
-            saveTick = Environment.TickCount;
-            for (int i = 0; i < nRows; i++)
-            {
-                for (int j = 0; j < nColumns; j++)
-                {
-                    twoDimArray[i, j].DateOfPassing = DateTime.Now;
-                    twoDimArray[i, j].Grade = 100;
-                    twoDimArray[i, j].SubjectName = "Test";
-                }
-            }
-            Console.WriteLine(Environment.TickCount - saveTick);
+            Console.WriteLine('\n' + student.ToString() + '\n' + copy.ToString());
 
-            saveTick = Environment.TickCount;
-            for (int i = 0; i < nRows; i++)
+            try
             {
-                for (int j = 0; j < nColumns; j++)
-                {
-                    stairsArray[i][j].DateOfPassing = DateTime.Now;
-                    stairsArray[i][j].Grade = 100;
-                    stairsArray[i][j].SubjectName = "Test";
-                }
+                student.Group = 9000;
             }
-            Console.WriteLine(Environment.TickCount - saveTick);
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+
+            foreach (Exam exam in student.GetExamsGraderThan(3))
+            {
+                Console.WriteLine(exam);
+            }
 
             Console.ReadKey();
         }
