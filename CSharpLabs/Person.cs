@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CSharpLabs
 {
-    public class Person : IDateAndCopy
+    public class Person : IDateAndCopy, IComparable, IComparer<Person>
     {
 
         #region Constants
@@ -118,6 +115,16 @@ namespace CSharpLabs
                 LastName = this.LastName,
                 DateOfBirth = this.DateOfBirth
             };
+        }
+
+        public int CompareTo(object obj)
+        {
+            return lastName.CompareTo((obj as Person).LastName);
+        }
+
+        public int Compare(Person x, Person y)
+        {
+            return x.dateOfBirth.CompareTo(y.dateOfBirth);
         }
         #endregion
 

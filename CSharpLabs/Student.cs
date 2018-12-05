@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace CSharpLabs
@@ -9,8 +10,8 @@ namespace CSharpLabs
         #region Fields
         private Education education;
         private int group;
-        private ArrayList tests;
-        private ArrayList exams;
+        private List<Test> tests;
+        private List<Exam> exams;
         #endregion
 
         #region Properties
@@ -47,13 +48,13 @@ namespace CSharpLabs
             }
         }
 
-        public ArrayList Exams
+        public List<Exam> Exams
         {
             get => exams;
             set => exams = value;
         }
 
-        public ArrayList Tests
+        public List<Test> Tests
         {
             get => tests;
             set => tests = value;
@@ -84,21 +85,26 @@ namespace CSharpLabs
 
         #region Constructors
 
-        public Student() : base() { }
+        public Student() : base()
+        {
+            Group = 101;
+        }
 
         public Student(string firstName, string lastName, DateTime dateOfBirth,
-            Education education, int group)
+            Education education, int group, List<Exam> exams)
             : base(firstName, lastName, dateOfBirth)
         {
             Education = education;
             Group = group;
+            Exams = exams;
         }
 
-        public Student(Person person, Education education, int group)
+        public Student(Person person, Education education, int group, List<Exam> exams)
             : base(person.FirstName, person.LastName, person.DateOfBirth)
         {
             Education = education;
             Group = group;
+            Exams = exams;
         }
         #endregion
 
@@ -111,7 +117,19 @@ namespace CSharpLabs
             }
             else
             {
-                exams = new ArrayList(newExams);
+                exams = new List<Exam>(newExams);
+            }
+        }
+
+        public void AddTests(params Test[] tests)
+        {
+            if (Tests == null)
+            {
+                Tests = new List<Test>(tests);
+            }
+            else
+            {
+                Tests.AddRange(tests);
             }
         }
 
@@ -153,65 +171,27 @@ namespace CSharpLabs
                 Person = this.Person,
                 Education = this.education,
                 Group = this.group,
-                Exams = new ArrayList(exams.Cast<Exam>().Select(exam => exam.DeepCopy()).ToArray()),
-                Tests = new ArrayList(tests.Cast<Test>().Select(test => new Test(test.Name, test.IsPassed)).ToArray())
+                Exams = new List<Exam>(exams.Select(exam => exam.DeepCopy() as Exam)),
+                Tests = new List<Test>(tests.Select(test => new Test(test.Name, test.IsPassed)))
             };
         }
 
-        public IEnumerable GetExamsGraderThan(double compare)
+        public IEnumerable GetExamsGraterThan(double compare)
         {
             return exams.Cast<Exam>().Where(exam => exam.Grade > compare);
         }
 
-        public static void Main(string[] args)
+        public IEnumerable<Exam> GetExamsByName(string name)
         {
-            Person a = new Person("Ivan", "Ivanov", new DateTime(2000, 1, 1));
-            Person b = new Person("Ivan", "Ivanov", new DateTime(2000, 1, 1));
-
-            Console.WriteLine("a == b ? " + (a == b));
-            Console.WriteLine("hash a : " + a.GetHashCode() + ", hash b : " + b.GetHashCode());
-
-            Student student = new Student("John", "Johnson", new DateTime(1999, 2, 1), Education.Bachelor, 313);
-            student.Exams = new ArrayList
+            foreach (var o in Exams)
             {
-                new Exam("Calculus", 4, DateTime.Now),
-                new Exam("C#", 5, DateTime.Now)
-            };
-            student.Tests = new ArrayList
-            {
-                new Test("Java", true),
-                new Test("Databases", true)
-            };
-
-            Console.WriteLine(student);
-            Console.WriteLine(student.Person);
-
-            Student copy = (Student)student.DeepCopy();
-
-            foreach (Test test in student.Tests)
-            {
-                test.IsPassed = false;
+                var article = o as Exam;
+                if (article == null || !article.SubjectName.Contains(name))
+                {
+                    continue;
+                }
+                yield return article;
             }
-
-            (student.Exams[0] as Exam).Grade = 2;
-
-            Console.WriteLine('\n' + student.ToString() + '\n' + copy.ToString());
-
-            try
-            {
-                student.Group = 9000;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-            }
-
-            foreach (Exam exam in student.GetExamsGraderThan(3))
-            {
-                Console.WriteLine(exam);
-            }
-
-            Console.ReadKey();
         }
         #endregion
 
