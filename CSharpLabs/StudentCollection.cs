@@ -1,15 +1,49 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CSharpLabs
 {
     public class StudentCollection
     {
-        private readonly List<Student> students;
+        #region Events
+        public event StudentListHandler StudentCountChanged;
+        public event StudentListHandler StudentReferenceChanged;
+        #endregion
 
+        #region Fields
+        private readonly List<Student> students;
+        #endregion
+
+        #region Properties
+        public string Name
+        {
+            get;
+            set;
+        }
+
+        public Student this[int index]
+        {
+            get
+            {
+                return students[index];
+            }
+            set
+            {
+                students[index] = value;
+
+                StudentListHandlerEventArgs args = new StudentListHandlerEventArgs
+                {
+                    Name = this.Name,
+                    Info = "Student reference changed",
+                    Index = index
+                };
+
+                StudentReferenceChanged?.Invoke(value, args);
+            }
+        }
+        #endregion
+
+        #region Constructors
         public StudentCollection()
         {
             students = new List<Student>();
@@ -19,12 +53,24 @@ namespace CSharpLabs
         {
             students = new List<Student>(_students);
         }
+        #endregion
 
+        #region Public methods
         public void AddDefaults(int n)
         {
             for (int i=0; i<n; i++)
             {
-                students.Add(new Student());
+                Student student = new Student();
+                students.Add(student);
+
+                StudentListHandlerEventArgs args = new StudentListHandlerEventArgs
+                {
+                    Name = this.Name,
+                    Info = "Default student added",
+                    Index = students.Count - 1
+                };
+
+                StudentCountChanged?.Invoke(student, args);
             }
         }
 
@@ -33,7 +79,39 @@ namespace CSharpLabs
             foreach(Student student in _students)
             {
                 students.Add(student);
+
+                StudentListHandlerEventArgs args = new StudentListHandlerEventArgs
+                {
+                    Name = this.Name,
+                    Info = "Student added",
+                    Index = students.Count - 1
+                };
+
+                StudentCountChanged?.Invoke(student, args);
             }
+        }
+
+        public bool Remove(int index)
+        {
+            if (index <= 0 || index > students.Count())
+            {
+                StudentListHandlerEventArgs args = new StudentListHandlerEventArgs
+                {
+                    Name = this.Name,
+                    Info = "Student removed",
+                    Index = index
+                };
+
+                StudentCountChanged?.Invoke(students[index], args);
+
+                students.RemoveAt(index);
+            }
+            else
+            {
+                return false;
+            }
+
+            return true;
         }
 
         public override string ToString()
@@ -82,5 +160,6 @@ namespace CSharpLabs
                .DefaultIfEmpty(new Student { Education = Education.Master })
                .Where(m => m.Education == Education.Master));
         }
+        #endregion
     }
 }
