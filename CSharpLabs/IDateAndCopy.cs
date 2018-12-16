@@ -2,9 +2,9 @@
 
 namespace CSharpLabs
 {
-    public interface IDateAndCopy
+    public interface IDateAndCopy<T>
     {
-        object DeepCopy();
+        T DeepCopy();
         DateTime Date { get; set; } 
     }
 }

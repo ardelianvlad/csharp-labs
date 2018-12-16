@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.IO;
 
 namespace CSharpLabs
 {
@@ -7,32 +7,53 @@ namespace CSharpLabs
     {
         static void Main(string[] args)
         {
-            Student student1 = new Student("Foo", "Bar", new DateTime(1997, 10, 05), Education.Bachelor, 401);
-            Student student2 = new Student("Baz", "Qux", new DateTime(1998, 10, 06), Education.Bachelor, 402);
-            Student student3 = new Student("John", "Doe", new DateTime(1953, 11, 05), Education.Master, 403);
+            Person person = new Person("Foo", "Bar", new DateTime(1997, 5, 21));
+            Student student = new Student(person, Education.Bachelor, 401);
+            Exam ex1 = new Exam("Dot Net", 5, new DateTime(2018, 11, 19));
+            Exam ex2 = new Exam("Python", 5, new DateTime(2018, 11, 20));
+            Exam ex3 = new Exam("Java", 4, new DateTime(2018, 11, 21));
 
-            StudentCollection studentCollection1 = new StudentCollection();
-            StudentCollection studentCollection2 = new StudentCollection();
-            studentCollection1.Name = "Collection 1";
-            studentCollection2.Name = "Collection 2";
+            student.AddExams(ex1, ex2, ex3);
 
-            Journal journal1 = new Journal();
-            Journal journal2 = new Journal();
+            Student studCopy = student.DeepCopy();
 
-            studentCollection1.StudentCountChanged += journal1.Handler;
-            studentCollection1.StudentReferenceChanged += journal1.Handler;
+            Console.WriteLine("Real object");
+            Console.WriteLine(student.ToString());
+            Console.WriteLine("Copy");
+            Console.WriteLine(studCopy.ToString());
 
-            studentCollection2.StudentCountChanged += journal2.Handler;
-            studentCollection2.StudentReferenceChanged += journal2.Handler;
+            Console.WriteLine("Write file name: ");
+            string filename = Console.ReadLine() + ".dat";
+            try
+            {
+                FileStream fileOpen = new FileStream(filename, FileMode.Open, FileAccess.Write, FileShare.Write);
+                fileOpen.Close();
+                Console.WriteLine(student.Load(filename));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                FileStream file = new FileStream(filename, FileMode.Create);
+                file.Close();
+            }
 
-            studentCollection1.AddStudents(student1, student2);
-            studentCollection1[0] = student3;
+            Console.WriteLine("After save");
+            Console.WriteLine(student.ToString());
 
-            studentCollection2.AddStudents(student1, student2, student3);
-            studentCollection2.Remove(0);
+            Console.WriteLine(student.AddFromConsole());
+            Console.WriteLine(student.Save(filename));
+            Console.WriteLine("Add from console");
+            Console.WriteLine(student.ToString());
 
-            Console.WriteLine(journal1.ToString());
-            Console.WriteLine(journal2.ToString());
+            Student test = new Student();
+            Console.WriteLine(Student.Load(filename, student));
+            Console.WriteLine(student.AddFromConsole());
+            Console.WriteLine("Add from console and save");
+            Console.WriteLine(Student.Save(filename, student));
+
+            Console.WriteLine("After save");
+            Console.WriteLine(student.ToString());
+
 
             Console.ReadKey();
         }

@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace CSharpLabs
 {
-    public class Student : Person, IDateAndCopy
+    [Serializable]
+    public class Student : Person, IDateAndCopy<Student>
     {
         #region Fields
-        private Education education;
         private int group;
-        private List<Test> tests;
-        private List<Exam> exams;
         #endregion
 
         #region Properties
@@ -26,11 +27,7 @@ namespace CSharpLabs
             }
         }
 
-        public Education Education
-        {
-            get => education;
-            set => education = value;
-        }
+        public Education Education{ get; set; }
 
         public int Group
         {
@@ -48,22 +45,14 @@ namespace CSharpLabs
             }
         }
 
-        public List<Exam> Exams
-        {
-            get => exams;
-            set => exams = value;
-        }
+        public List<Exam> Exams { get; set; }
 
-        public List<Test> Tests
-        {
-            get => tests;
-            set => tests = value;
-        }
+        public List<Test> Tests { get; set; }
 
         public double AvgGrade
         {
-            get => exams != null
-                ? exams.Cast<Exam>().Average(exam => exam.Grade)
+            get => Exams != null
+                ? Exams.Cast<Exam>().Average(exam => exam.Grade)
                 : 0;
         }
 
@@ -71,15 +60,15 @@ namespace CSharpLabs
         {
             get
             {
-                ArrayList examsAndTests = new ArrayList { exams };
-                examsAndTests.AddRange(tests);
+                ArrayList examsAndTests = new ArrayList { Exams };
+                examsAndTests.AddRange(Tests);
                 return examsAndTests.Cast<object>();
             }
         }
 
         public bool this[Education toCompare]
         {
-            get => education == toCompare;
+            get => Education == toCompare;
         }
         #endregion
 
@@ -109,13 +98,13 @@ namespace CSharpLabs
         #region Public methods
         public void AddExams(params Exam[] newExams)
         {
-            if (exams != null && Exams.Count != 0)
+            if (Exams != null && Exams.Count != 0)
             {
                 Exams.AddRange(newExams);
             }
             else
             {
-                exams = new List<Exam>(newExams);
+                Exams = new List<Exam>(newExams);
             }
         }
 
@@ -134,19 +123,19 @@ namespace CSharpLabs
         public override string ToString()
         {
             string result = "Person: " + base.ToString() + "\n"
-                + education.ToString() + ", " + group.ToString() + " group\nExams: ";
-            if (exams != null)
+                + Education.ToString() + ", " + Group.ToString() + " group\nExams: ";
+            if (Exams != null)
             {
-                result += string.Join<Exam>("\n", exams.Cast<Exam>());
+                result += string.Join<Exam>("\n", Exams.Cast<Exam>());
             }
             else
             {
                 result += "none";
             }
             result += "\n, Tests:";
-            if (tests != null)
+            if (Tests != null)
             {
-                result += string.Join<Test>("\n", tests.Cast<Test>());
+                result += string.Join<Test>("\n", Tests.Cast<Test>());
             }
             else
             {
@@ -158,25 +147,26 @@ namespace CSharpLabs
         public override string ToShortString()
         {
             return "Student: " + base.ToShortString() + ", "
-                + education.ToString() + ", " + group.ToString() + " group, "
+                + Education.ToString() + ", " + Group.ToString() + " group, "
                 + "average grade: " + AvgGrade.ToString();
         }
 
-        public override object DeepCopy()
+        public Student DeepCopy()
         {
-            return new Student
+            Student result;
+            using (var stream = new MemoryStream())
             {
-                Person = this.Person,
-                Education = this.education,
-                Group = this.group,
-                Exams = new List<Exam>(exams.Select(exam => exam.DeepCopy() as Exam)),
-                Tests = new List<Test>(tests.Select(test => new Test(test.Name, test.IsPassed)))
-            };
+                var formatter = new BinaryFormatter();
+                formatter.Serialize(stream, this);
+                stream.Position = 0;
+                result = formatter.Deserialize(stream) as Student;
+            }
+            return result;
         }
 
         public IEnumerable GetExamsGraterThan(double compare)
         {
-            return exams.Cast<Exam>().Where(exam => exam.Grade > compare);
+            return Exams.Cast<Exam>().Where(exam => exam.Grade > compare);
         }
 
         public IEnumerable<Exam> GetExamsByName(string name)
@@ -190,6 +180,82 @@ namespace CSharpLabs
                 }
                 yield return article;
             }
+        }
+
+        public bool Save(string fileName)
+        {
+            using (var stream = File.Open(fileName, FileMode.Create))
+            {
+                try
+                {
+                    var formatter = new BinaryFormatter();
+                    formatter.Serialize(stream, this);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    return false;
+                }
+            }
+        }
+
+        public bool Load(string fileName)
+        {
+            using (var stream = File.Open(fileName, FileMode.Open))
+            {
+                try
+                {
+                    var formatter = new BinaryFormatter();
+                    var result = formatter.Deserialize(stream) as Student;
+                    if (result == null)
+                    {
+                        return false;
+                    }
+                    Person = result.Person;
+                    Education = result.Education;
+                    Group = result.Group;
+                    Exams = result.Exams;
+                    Tests = result.Tests;
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
+        public bool AddFromConsole()
+        {
+            try
+            {
+                Console.WriteLine($"String format:{Environment.NewLine}" +
+                    "<string:subject_name>;<int:grade>;<dd.mm.yyyy:date>");
+                var input = Console.ReadLine().Split(';');
+                if (input.Length != 3)
+                {
+                    return false;
+                }
+                var date = DateTime.ParseExact(input[2], "dd.mm.yyyy", CultureInfo.InvariantCulture);
+                var grade = int.Parse(input[1], CultureInfo.InvariantCulture);
+                var exam = new Exam(input[0], grade, date);
+                Exams.Add(exam);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool Save(string fileName, Student magazine)
+        {
+            return magazine.Save(fileName);
+        }
+
+        public static bool Load(string fileName, Student magazine)
+        {
+            return magazine.Load(fileName);
         }
         #endregion
 

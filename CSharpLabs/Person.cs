@@ -3,7 +3,8 @@ using System.Collections.Generic;
 
 namespace CSharpLabs
 {
-    public class Person : IDateAndCopy, IComparable, IComparer<Person>
+    [Serializable]
+    public class Person : IComparable, IComparer<Person>
     {
 
         #region Constants
@@ -105,16 +106,6 @@ namespace CSharpLabs
             return firstName.GetHashCode()
                 ^ lastName.GetHashCode()
                 ^ dateOfBirth.GetHashCode();
-        }
-
-        public virtual object DeepCopy()
-        {
-            return new Person
-            {
-                FirstName = this.FirstName,
-                LastName = this.LastName,
-                DateOfBirth = this.DateOfBirth
-            };
         }
 
         public int CompareTo(object obj)

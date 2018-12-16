@@ -2,7 +2,8 @@
 
 namespace CSharpLabs
 {
-    public class Exam : IDateAndCopy
+    [Serializable]
+    public class Exam : IDateAndCopy<Exam>
     {
 
         #region Properties
@@ -80,7 +81,7 @@ namespace CSharpLabs
                 ^ DateOfPassing.GetHashCode();
         }
 
-        public object DeepCopy()
+        public Exam DeepCopy()
         {
             return new Exam
             {
